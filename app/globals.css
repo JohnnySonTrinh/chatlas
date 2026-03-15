@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 42 45% 97%;
+  --foreground: 221 33% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 221 33% 14%;
+  --primary: 202 80% 39%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 33 72% 82%;
+  --secondary-foreground: 215 34% 18%;
+  --muted: 45 28% 92%;
+  --muted-foreground: 221 16% 40%;
+  --accent: 159 38% 88%;
+  --accent-foreground: 158 67% 19%;
+  --destructive: 0 74% 52%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 30 24% 84%;
+  --input: 30 28% 88%;
+  --ring: 202 80% 39%;
+  --font-sans: "Avenir Next", "Segoe UI Variable Display", "Trebuchet MS", sans-serif;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255, 215, 171, 0.58), transparent 34%),
+    radial-gradient(circle at 80% 10%, rgba(158, 208, 199, 0.34), transparent 28%),
+    linear-gradient(180deg, #fff9ef 0%, #f7f2e8 35%, #f2ede5 100%);
+  color: hsl(var(--foreground));
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(31, 122, 181, 0.18);
+}
+
+.world-grid {
+  background-image:
+    linear-gradient(rgba(45, 61, 85, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45, 61, 85, 0.08) 1px, transparent 1px);
+  background-size: 120px 120px;
+}
+
+.world-haze::before,
+.world-haze::after {
+  content: "";
+  position: absolute;
+  inset: auto;
+  border-radius: 9999px;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.world-haze::before {
+  width: 24rem;
+  height: 24rem;
+  top: 10%;
+  left: 8%;
+  background: radial-gradient(circle, rgba(255, 211, 169, 0.2), transparent 72%);
+  animation: drift 16s ease-in-out infinite;
+}
+
+.world-haze::after {
+  width: 30rem;
+  height: 30rem;
+  right: 10%;
+  bottom: 8%;
+  background: radial-gradient(circle, rgba(143, 201, 193, 0.24), transparent 70%);
+  animation: drift 18s ease-in-out infinite reverse;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(103, 113, 131, 0.24);
+  border-radius: 9999px;
+}

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { LogIn, LogOut, Mail, Orbit, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Orbit } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DISPLAY_NAME_LIMIT } from "@/lib/content";
 import type { AppUser } from "@/lib/types";
 
 export function AuthPanel({
@@ -12,76 +13,64 @@ export function AuthPanel({
   currentUser,
   guestName,
   pending,
-  onMagicLink,
-  onGoogle,
-  onSignOut
+  onJoinAsGuest,
 }: {
   supabaseConfigured: boolean;
   currentUser: AppUser | null;
   guestName: string;
   pending: boolean;
-  onMagicLink: (email: string) => Promise<void>;
-  onGoogle: () => Promise<void>;
-  onSignOut: () => Promise<void>;
+  onJoinAsGuest: (name: string) => Promise<void>;
 }) {
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(guestName);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setName(guestName);
+    }
+  }, [currentUser, guestName]);
 
   return (
-    <aside className="pointer-events-auto fixed left-4 top-4 z-30 w-[min(24rem,calc(100vw-2rem))] rounded-[2rem] border border-white/70 bg-white/78 p-4 shadow-toolbar backdrop-blur-xl">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-secondary/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-secondary-foreground">
-            <Orbit className="size-3.5" />
-            Chatlas
-          </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">A shared map of conversations.</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Pan the world, zoom into clusters, and drop public chat bubbles wherever conversation wants to happen.
-          </p>
+    <>
+      <aside className="pointer-events-none fixed left-4 top-4 z-30">
+        <div className="inline-flex items-center gap-2 rounded-full bg-secondary/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-secondary-foreground">
+          <Orbit className="size-3.5" />
+          Chatlas
         </div>
-      </div>
+      </aside>
 
       {!supabaseConfigured ? (
-        <div className="mt-4 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Add your Supabase URL and anon key to <code>.env.local</code> to enable auth, realtime, and persistence.
+        <div className="pointer-events-auto fixed inset-x-4 top-1/2 z-30 mx-auto w-full max-w-lg -translate-y-1/2 rounded-[2rem] border border-amber-200 bg-white/88 p-6 shadow-toolbar backdrop-blur-xl">
+          <p className="text-lg font-semibold tracking-tight text-foreground">
+            Supabase keys needed
+          </p>
+          <p className="mt-3 text-sm leading-6 text-amber-900">
+            Add your Supabase URL and publishable or anon key to{" "}
+            <code>.env.local</code> to enable realtime persistence.
+          </p>
         </div>
-      ) : currentUser ? (
-        <div className="mt-4 rounded-[1.5rem] border border-border bg-white/75 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-full bg-accent text-accent-foreground">
-              <UserRound className="size-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">{currentUser.displayName}</p>
-              <p className="text-xs text-muted-foreground">{currentUser.email ?? "Signed in"}</p>
-            </div>
+      ) : !currentUser ? (
+        <div className="pointer-events-auto fixed inset-x-4 top-1/2 z-30 mx-auto w-full max-w-md -translate-y-1/2 rounded-[2rem] border border-white/75 bg-white/88 p-5 shadow-toolbar backdrop-blur-xl">
+          <div className="mb-3 px-1 text-sm font-medium tracking-tight text-foreground">
+            Enter a display name
           </div>
-          <Button className="mt-4 w-full" variant="outline" onClick={() => void onSignOut()} disabled={pending}>
-            <LogOut className="size-4" />
-            Sign out
-          </Button>
-        </div>
-      ) : (
-        <div className="mt-4 space-y-3 rounded-[1.5rem] border border-border bg-white/75 p-4">
-          <div className="rounded-[1.25rem] bg-muted/70 px-3 py-2 text-sm text-muted-foreground">
-            Exploring as <span className="font-semibold text-foreground">{guestName}</span>. Sign in to create, move, resize, and chat.
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Input
+              maxLength={DISPLAY_NAME_LIMIT}
+              placeholder="Pick a display name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="sm:flex-1"
+            />
+            <Button
+              onClick={() => void onJoinAsGuest(name)}
+              disabled={pending || !name.trim()}
+              className="sm:px-6"
+            >
+              Enter world
+            </Button>
           </div>
-          <Input
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          <Button className="w-full" onClick={() => void onMagicLink(email)} disabled={pending || !email.trim()}>
-            <Mail className="size-4" />
-            Email magic link
-          </Button>
-          <Button className="w-full" variant="outline" onClick={() => void onGoogle()} disabled={pending}>
-            <LogIn className="size-4" />
-            Continue with Google
-          </Button>
         </div>
-      )}
-    </aside>
+      ) : null}
+    </>
   );
 }

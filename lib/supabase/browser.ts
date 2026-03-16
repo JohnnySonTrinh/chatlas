@@ -14,7 +14,7 @@ export function createSupabaseBrowserClient() {
   }
 
   if (!browserClient) {
-    browserClient = createBrowserClient<Database>(env.supabaseUrl, env.supabaseAnonKey);
+    browserClient = createBrowserClient<Database>(env.supabaseUrl, env.supabaseAnonKey) as unknown as AppSupabaseClient;
   }
 
   return browserClient;

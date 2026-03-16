@@ -1,4 +1,4 @@
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { User, SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/supabase";
 
@@ -8,7 +8,7 @@ export type BubbleInsert = Database["public"]["Tables"]["bubbles"]["Insert"];
 export type BubbleUpdate = Database["public"]["Tables"]["bubbles"]["Update"];
 export type MessageRow = Database["public"]["Views"]["messages_with_profiles"]["Row"];
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
-export type AppSupabaseClient = SupabaseClient<Database>;
+export type AppSupabaseClient = SupabaseClient<Database, { PostgrestVersion: "12" }, "public", Database["public"]>;
 
 export interface CameraState {
   x: number;
@@ -50,7 +50,6 @@ export interface ClusterNode {
   x: number;
   y: number;
   count: number;
-  sampleTitle: string;
 }
 
 export function mapSupabaseUser(user: User | null, profile?: ProfileRow | null): AppUser | null {

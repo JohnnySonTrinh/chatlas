@@ -109,7 +109,11 @@ export function useBubbleMessages({
           filter: `bubble_id=eq.${bubbleId}`
         },
         async (payload) => {
-          const nextMessage = await buildRealtimeMessage(supabase, payload, currentUser);
+          const nextMessage = await buildRealtimeMessage(
+            supabase,
+            payload as unknown as { new: Database["public"]["Tables"]["messages"]["Row"] },
+            currentUser
+          );
           setMessages((current) => mergeMessages(current.filter((message) => message.id !== `optimistic:${nextMessage.id}`), nextMessage));
         }
       )
@@ -123,7 +127,7 @@ export function useBubbleMessages({
 
   const sendMessage = async (content: string) => {
     if (!bubbleId || !currentUser || !supabase) {
-      return { error: new Error("You need to sign in before chatting.") };
+      return { error: new Error("Enter the world with a name before chatting.") };
     }
 
     const trimmed = content.trim();

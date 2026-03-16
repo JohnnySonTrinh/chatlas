@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { DISPLAY_NAME_LIMIT } from "@/lib/content";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -10,7 +12,7 @@ export function clamp(value: number, min: number, max: number) {
 }
 
 export function formatPresenceName(input: string) {
-  return input.trim().slice(0, 30) || "Explorer";
+  return input.trim().slice(0, DISPLAY_NAME_LIMIT) || "Explorer";
 }
 
 export function truncate(input: string | null | undefined, length = 80) {

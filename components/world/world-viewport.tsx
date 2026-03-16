@@ -7,18 +7,19 @@ import {
   CLUSTER_CELL_SIZE,
   CLUSTER_ZOOM_THRESHOLD,
   VIEWPORT_CULLING_MARGIN,
-  WORLD_INITIAL_BOUNDS
+  WORLD_INITIAL_BOUNDS,
 } from "@/lib/constants";
 import { clamp, cn } from "@/lib/utils";
-import type { BubblePresence, BubbleSummary, CameraState, ClusterNode } from "@/lib/types";
+import type { BubbleSummary, CameraState, ClusterNode } from "@/lib/types";
 import { BubbleCard } from "@/components/world/bubble-card";
+import { Minimap } from "@/components/world/minimap";
 
 function getVisibleBounds(camera: CameraState, width: number, height: number) {
   return {
     left: camera.x - width / (2 * camera.zoom) - VIEWPORT_CULLING_MARGIN,
     right: camera.x + width / (2 * camera.zoom) + VIEWPORT_CULLING_MARGIN,
     top: camera.y - height / (2 * camera.zoom) - VIEWPORT_CULLING_MARGIN,
-    bottom: camera.y + height / (2 * camera.zoom) + VIEWPORT_CULLING_MARGIN
+    bottom: camera.y + height / (2 * camera.zoom) + VIEWPORT_CULLING_MARGIN,
   };
 }
 
@@ -46,7 +47,6 @@ function createClusters(bubbles: BubbleSummary[]) {
       x: centerX,
       y: centerY,
       count: 1,
-      sampleTitle: bubble.title
     });
   });
 
@@ -58,23 +58,27 @@ export function WorldViewport({
   camera,
   selectedBubbleId,
   currentUserId,
-  bubblePresenceMap,
   onSelectBubble,
   onCreateBubble,
   onUpdateCamera,
   onPreviewBubble,
-  onCommitBubble
+  onCommitBubble,
 }: {
   bubbles: BubbleSummary[];
   camera: CameraState;
   selectedBubbleId: string | null;
   currentUserId: string | null;
-  bubblePresenceMap: Record<string, BubblePresence>;
   onSelectBubble: (bubbleId: string | null) => void;
   onCreateBubble: () => void;
   onUpdateCamera: (camera: CameraState) => void;
-  onPreviewBubble: (bubbleId: string, patch: Partial<Pick<BubbleSummary, "x" | "y" | "width" | "height">>) => void;
-  onCommitBubble: (bubbleId: string, patch: Partial<Pick<BubbleSummary, "x" | "y" | "width" | "height">>) => void;
+  onPreviewBubble: (
+    bubbleId: string,
+    patch: Partial<Pick<BubbleSummary, "x" | "y" | "width" | "height">>,
+  ) => void;
+  onCommitBubble: (
+    bubbleId: string,
+    patch: Partial<Pick<BubbleSummary, "x" | "y" | "width" | "height">>,
+  ) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const panFrame = useRef<number | null>(null);
@@ -90,7 +94,7 @@ export function WorldViewport({
     const observer = new ResizeObserver(([entry]) => {
       setViewportSize({
         width: entry.contentRect.width,
-        height: entry.contentRect.height
+        height: entry.contentRect.height,
       });
     });
 
@@ -104,7 +108,7 @@ export function WorldViewport({
 
   const visibleBounds = useMemo(
     () => getVisibleBounds(camera, viewportSize.width, viewportSize.height),
-    [camera, viewportSize.height, viewportSize.width]
+    [camera, viewportSize.height, viewportSize.width],
   );
 
   const visibleBubbles = useMemo(
@@ -112,12 +116,26 @@ export function WorldViewport({
       bubbles.filter((bubble) => {
         const right = bubble.x + bubble.width;
         const bottom = bubble.y + bubble.height;
-        return right >= visibleBounds.left && bubble.x <= visibleBounds.right && bottom >= visibleBounds.top && bubble.y <= visibleBounds.bottom;
+        return (
+          right >= visibleBounds.left &&
+          bubble.x <= visibleBounds.right &&
+          bottom >= visibleBounds.top &&
+          bubble.y <= visibleBounds.bottom
+        );
       }),
-    [bubbles, visibleBounds.bottom, visibleBounds.left, visibleBounds.right, visibleBounds.top]
+    [
+      bubbles,
+      visibleBounds.bottom,
+      visibleBounds.left,
+      visibleBounds.right,
+      visibleBounds.top,
+    ],
   );
 
-  const clusters = useMemo(() => createClusters(visibleBubbles), [visibleBubbles]);
+  const clusters = useMemo(
+    () => createClusters(visibleBubbles),
+    [visibleBubbles],
+  );
 
   const queueCameraUpdate = (next: CameraState) => {
     nextCamera.current = next;
@@ -137,7 +155,7 @@ export function WorldViewport({
         cancelAnimationFrame(panFrame.current);
       }
     },
-    []
+    [],
   );
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -156,8 +174,16 @@ export function WorldViewport({
       const deltaY = (moveEvent.clientY - startY) / startCamera.zoom;
       queueCameraUpdate({
         ...startCamera,
-        x: clamp(startCamera.x - deltaX, WORLD_INITIAL_BOUNDS.minX, WORLD_INITIAL_BOUNDS.maxX),
-        y: clamp(startCamera.y - deltaY, WORLD_INITIAL_BOUNDS.minY, WORLD_INITIAL_BOUNDS.maxY)
+        x: clamp(
+          startCamera.x - deltaX,
+          WORLD_INITIAL_BOUNDS.minX,
+          WORLD_INITIAL_BOUNDS.maxX,
+        ),
+        y: clamp(
+          startCamera.y - deltaY,
+          WORLD_INITIAL_BOUNDS.minY,
+          WORLD_INITIAL_BOUNDS.maxY,
+        ),
       });
     };
 
@@ -189,12 +215,24 @@ export function WorldViewport({
     const worldY = camera.y + (screenY - rect.height / 2) / camera.zoom;
     const delta = event.deltaY;
     const zoomFactor = Math.exp(-delta * 0.0013);
-    const nextZoom = clamp(camera.zoom * zoomFactor, CAMERA_LIMITS.minZoom, CAMERA_LIMITS.maxZoom);
+    const nextZoom = clamp(
+      camera.zoom * zoomFactor,
+      CAMERA_LIMITS.minZoom,
+      CAMERA_LIMITS.maxZoom,
+    );
 
     queueCameraUpdate({
-      x: clamp(worldX - (screenX - rect.width / 2) / nextZoom, WORLD_INITIAL_BOUNDS.minX, WORLD_INITIAL_BOUNDS.maxX),
-      y: clamp(worldY - (screenY - rect.height / 2) / nextZoom, WORLD_INITIAL_BOUNDS.minY, WORLD_INITIAL_BOUNDS.maxY),
-      zoom: nextZoom
+      x: clamp(
+        worldX - (screenX - rect.width / 2) / nextZoom,
+        WORLD_INITIAL_BOUNDS.minX,
+        WORLD_INITIAL_BOUNDS.maxX,
+      ),
+      y: clamp(
+        worldY - (screenY - rect.height / 2) / nextZoom,
+        WORLD_INITIAL_BOUNDS.minY,
+        WORLD_INITIAL_BOUNDS.maxY,
+      ),
+      zoom: nextZoom,
     });
   };
 
@@ -211,7 +249,7 @@ export function WorldViewport({
       <div
         className="absolute left-1/2 top-1/2 origin-top-left"
         style={{
-          transform: `translate3d(${-camera.x * camera.zoom}px, ${-camera.y * camera.zoom}px, 0) scale(${camera.zoom})`
+          transform: `translate3d(${-camera.x * camera.zoom}px, ${-camera.y * camera.zoom}px, 0) scale(${camera.zoom})`,
         }}
       >
         <div className="pointer-events-none absolute left-[-1px] top-[-20000px] h-[40000px] w-[2px] bg-primary/8" />
@@ -223,14 +261,18 @@ export function WorldViewport({
                 key={cluster.id}
                 className="pointer-events-auto absolute flex items-center gap-3 rounded-full border border-white/70 bg-white/90 px-4 py-3 text-sm font-semibold shadow-bubble transition hover:bg-white"
                 style={{
-                  transform: `translate3d(${cluster.x}px, ${cluster.y}px, 0) translate(-50%, -50%)`
+                  transform: `translate3d(${cluster.x}px, ${cluster.y}px, 0) translate(-50%, -50%)`,
                 }}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={() =>
                   onUpdateCamera({
                     x: cluster.x,
                     y: cluster.y,
-                    zoom: clamp(Math.max(camera.zoom * 1.42, 0.8), CAMERA_LIMITS.minZoom, CAMERA_LIMITS.maxZoom)
+                    zoom: clamp(
+                      Math.max(camera.zoom * 1.42, 0.8),
+                      CAMERA_LIMITS.minZoom,
+                      CAMERA_LIMITS.maxZoom,
+                    ),
                   })
                 }
               >
@@ -238,7 +280,7 @@ export function WorldViewport({
                   <span className="absolute inline-flex h-full w-full animate-pulseRing rounded-full bg-primary/40" />
                   <span className="relative inline-flex size-3 rounded-full bg-primary" />
                 </span>
-                {cluster.count} bubbles near “{cluster.sampleTitle}”
+                {cluster.count} bubbles nearby
               </button>
             ))
           : visibleBubbles.map((bubble) => (
@@ -248,7 +290,6 @@ export function WorldViewport({
                 active={selectedBubbleId === bubble.id}
                 canEdit={currentUserId === bubble.owner_id}
                 zoom={camera.zoom}
-                presence={bubblePresenceMap[bubble.id]}
                 onSelect={onSelectBubble}
                 onMovePreview={onPreviewBubble}
                 onMoveCommit={onCommitBubble}
@@ -258,20 +299,31 @@ export function WorldViewport({
             ))}
       </div>
 
-      <div className="pointer-events-none absolute bottom-28 right-5 z-20 hidden max-w-xs rounded-[1.75rem] border border-white/60 bg-white/65 p-4 text-sm leading-6 text-muted-foreground shadow-bubble backdrop-blur-xl md:block">
-        <p className="font-semibold text-foreground">Spatial social mode</p>
-        <p className="mt-2">Drag the world to roam, scroll to zoom, press <kbd className="rounded bg-muted px-2 py-1 text-xs">C</kbd> to plant a bubble at center.</p>
-      </div>
+      <Minimap
+        bubbles={bubbles}
+        camera={camera}
+        viewportSize={viewportSize}
+        onNavigate={({ x, y }) =>
+          onUpdateCamera({
+            ...camera,
+            x,
+            y,
+          })
+        }
+      />
 
       {camera.zoom >= CLUSTER_ZOOM_THRESHOLD && visibleBubbles.length === 0 ? (
         <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 mx-auto max-w-md -translate-y-1/2 rounded-[2rem] border border-dashed border-white/70 bg-white/70 px-6 py-5 text-center shadow-bubble backdrop-blur-xl">
-          <p className="text-lg font-semibold tracking-tight text-foreground">Quiet patch of the map.</p>
+          <p className="text-lg font-semibold tracking-tight text-foreground">
+            Quiet patch of the map.
+          </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Pan toward another cluster or create a new bubble at the center to start a fresh public conversation.
+            Pan toward another cluster or create a new bubble at the center to
+            start a fresh public conversation.
           </p>
           <button
             className={cn(
-              "pointer-events-auto mt-4 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+              "pointer-events-auto mt-4 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90",
             )}
             onClick={onCreateBubble}
           >

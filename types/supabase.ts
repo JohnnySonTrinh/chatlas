@@ -6,6 +6,30 @@ export interface Database {
   };
   public: {
     Tables: {
+      bubble_reports: {
+        Row: {
+          bubble_id: string;
+          created_at: string;
+          id: string;
+          reason: string;
+          reporter_id: string;
+        };
+        Insert: {
+          bubble_id: string;
+          created_at?: string;
+          id?: string;
+          reason?: string;
+          reporter_id: string;
+        };
+        Update: {
+          bubble_id?: string;
+          created_at?: string;
+          id?: string;
+          reason?: string;
+          reporter_id?: string;
+        };
+        Relationships: [];
+      };
       bubbles: {
         Row: {
           created_at: string;

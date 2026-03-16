@@ -12,9 +12,10 @@ Chatlas is a spatial social sandbox built with Next.js and Supabase. People can 
 
 ## Features
 
+- Name-first guest entry with Supabase anonymous auth
 - Anonymous exploration of the shared world
-- Supabase Auth with email magic links and Google OAuth
-- Bubble creation at camera center for signed-in users
+- Optional Supabase Auth upgrades remain available if you want them later
+- Bubble creation at camera center for anyone who joins with a name
 - Drag, resize, rename, and delete for bubble owners only
 - Public per-bubble chat threads with optimistic sends
 - Realtime message updates and lightweight bubble presence
@@ -41,12 +42,13 @@ cp .env.example .env.local
 ```env
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+# or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 ```
 
 4. Apply the database schema and seed data in Supabase:
 
 ```bash
-supabase db reset
+npm run supabase:reset
 ```
 
 This project includes:
@@ -114,11 +116,46 @@ Chatlas is a social navigation product, not a whiteboard. A DOM-first world keep
 
 ## Auth and security
 
-- Anonymous and signed-in users can read bubbles and messages
-- Only authenticated users can create bubbles or send messages
+- Visitors can browse without joining
+- Guests join by entering a display name, which creates an anonymous Supabase auth session
+- Guest and signed-in users can create bubbles and send messages
 - Only bubble owners can move, resize, rename, or delete their bubbles
 - Profiles are created automatically from `auth.users` via a trigger
 - RLS policies enforce all write constraints at the database level
+
+## Local Supabase
+
+This repo now includes a Supabase CLI config at [supabase/config.toml](/c:/Users/Johnny/Documents/GitHub/Chatlas/supabase/config.toml) and convenience scripts:
+
+```bash
+npm run supabase:start
+npm run supabase:status
+npm run supabase:reset
+npm run supabase:stop
+```
+
+Important: the local Supabase stack requires Docker Desktop. If you do not want to run Docker locally, you can instead create a hosted Supabase project and copy its URL and anon key into `.env.local`.
+
+## Hosted Supabase
+
+If you want to use a hosted Supabase project instead of Docker:
+
+1. Create a project in the Supabase dashboard.
+2. Open the project's Connect dialog or API settings and copy:
+   - Project URL
+   - Publishable key or legacy anon key
+3. Put those into `.env.local`.
+4. In Supabase Dashboard, go to SQL Editor and run [`supabase/migrations/001_init.sql`](/c:/Users/Johnny/Documents/GitHub/Chatlas/supabase/migrations/001_init.sql).
+5. Optional: run [`supabase/seed.sql`](/c:/Users/Johnny/Documents/GitHub/Chatlas/supabase/seed.sql) if you want example bubbles and conversations.
+6. In Authentication > Providers, enable Anonymous Sign-Ins.
+7. In Authentication > URL Configuration, set:
+   - Site URL: `http://localhost:3000`
+   - Redirect URLs:
+     - `http://localhost:3000`
+     - `http://localhost:3000/auth/callback`
+     - `http://127.0.0.1:3000`
+     - `http://127.0.0.1:3000/auth/callback`
+8. If you also want email magic links or Google later, enable those providers separately.
 
 ## Notes
 

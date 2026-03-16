@@ -23,5 +23,5 @@ export async function createSupabaseServerClient(): Promise<AppSupabaseClient> {
         }
       }
     }
-  });
+  }) as unknown as AppSupabaseClient;
 }

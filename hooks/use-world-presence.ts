@@ -8,6 +8,18 @@ import { formatPresenceName, makeGuestName } from "@/lib/utils";
 
 const GUEST_NAME_STORAGE_KEY = "chatlas.guest-name";
 
+function persistGuestName(nextName: string) {
+  const formatted = formatPresenceName(nextName);
+
+  try {
+    window.localStorage.setItem(GUEST_NAME_STORAGE_KEY, formatted);
+  } catch {
+    // Ignore storage failures and keep the in-memory name.
+  }
+
+  return formatted;
+}
+
 function flattenPresence(state: Record<string, PresenceUser[]>) {
   return Object.values(state).flat().sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -43,8 +55,7 @@ export function useWorldPresence({
       }
 
       const generated = makeGuestName();
-      window.localStorage.setItem(GUEST_NAME_STORAGE_KEY, generated);
-      setGuestName(generated);
+      setGuestName(persistGuestName(generated));
     } catch {
       setGuestName(makeGuestName());
     }
@@ -148,6 +159,9 @@ export function useWorldPresence({
   return {
     bubblePresenceMap,
     presenceUsers,
-    guestName
+    guestName,
+    setGuestName: (nextName: string) => {
+      setGuestName(persistGuestName(nextName));
+    }
   };
 }

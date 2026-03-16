@@ -16,7 +16,7 @@ create table if not exists public.profiles (
   avatar_url text,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
-  constraint profiles_display_name_length check (char_length(trim(display_name)) between 1 and 48)
+  constraint profiles_display_name_length check (char_length(trim(display_name)) between 1 and 24)
 );
 
 create table if not exists public.bubbles (
@@ -40,13 +40,24 @@ create table if not exists public.messages (
   user_id uuid not null references auth.users (id) on delete cascade,
   content text not null,
   created_at timestamptz not null default timezone('utc', now()),
-  constraint messages_content_length check (char_length(trim(content)) between 1 and 2000)
+  constraint messages_content_length check (char_length(trim(content)) between 1 and 320)
+);
+
+create table if not exists public.bubble_reports (
+  id uuid primary key default gen_random_uuid(),
+  bubble_id uuid not null references public.bubbles (id) on delete cascade,
+  reporter_id uuid not null references auth.users (id) on delete cascade,
+  reason text not null default '',
+  created_at timestamptz not null default timezone('utc', now()),
+  constraint bubble_reports_reason_length check (char_length(trim(reason)) between 0 and 240),
+  constraint bubble_reports_unique_reporter unique (bubble_id, reporter_id)
 );
 
 create index if not exists bubbles_world_position_idx on public.bubbles (x, y);
 create index if not exists bubbles_owner_idx on public.bubbles (owner_id);
 create index if not exists messages_bubble_created_idx on public.messages (bubble_id, created_at desc);
 create index if not exists messages_user_idx on public.messages (user_id);
+create index if not exists bubble_reports_bubble_created_idx on public.bubble_reports (bubble_id, created_at desc);
 
 drop trigger if exists set_profiles_updated_at on public.profiles;
 create trigger set_profiles_updated_at
@@ -79,7 +90,7 @@ begin
   insert into public.profiles (id, display_name, avatar_url)
   values (
     new.id,
-    left(next_display_name, 48),
+    left(next_display_name, 24),
     new.raw_user_meta_data ->> 'avatar_url'
   )
   on conflict (id) do update
@@ -101,6 +112,7 @@ execute function public.handle_new_user();
 alter table public.profiles enable row level security;
 alter table public.bubbles enable row level security;
 alter table public.messages enable row level security;
+alter table public.bubble_reports enable row level security;
 
 drop policy if exists "Profiles are publicly readable" on public.profiles;
 create policy "Profiles are publicly readable"
@@ -178,6 +190,22 @@ grant insert, update, delete on public.bubbles to authenticated;
 grant select on public.messages to anon, authenticated;
 grant insert on public.messages to authenticated;
 
+drop policy if exists "Users can report bubbles" on public.bubble_reports;
+create policy "Users can report bubbles"
+on public.bubble_reports
+for insert
+to authenticated
+with check (auth.uid() = reporter_id);
+
+drop policy if exists "Users can view their own reports" on public.bubble_reports;
+create policy "Users can view their own reports"
+on public.bubble_reports
+for select
+to authenticated
+using (auth.uid() = reporter_id);
+
+grant insert, select on public.bubble_reports to authenticated;
+
 create or replace view public.bubble_summaries
 with (security_invoker = true)
 as
@@ -246,6 +274,14 @@ $$;
 do $$
 begin
   alter publication supabase_realtime add table public.profiles;
+exception
+  when duplicate_object then null;
+end;
+$$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.bubble_reports;
 exception
   when duplicate_object then null;
 end;

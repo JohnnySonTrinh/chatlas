@@ -1,19 +1,111 @@
 "use client";
 
 import { memo, useMemo, useRef } from "react";
-import { Grip, MessageCircleMore, Move, Users2 } from "lucide-react";
+import { Grip, Move } from "lucide-react";
 
-import { cn, truncate } from "@/lib/utils";
-import type { BubblePresence, BubbleSummary } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import type { BubbleSummary } from "@/lib/types";
 
 type DraftPatch = Pick<BubbleSummary, "x" | "y" | "width" | "height">;
+
+const BUBBLE_THEMES = [
+  {
+    background: "linear-gradient(180deg, rgba(255,247,230,0.97) 0%, rgba(255,229,193,0.92) 100%)",
+    activeBackground: "linear-gradient(180deg, rgba(255,249,236,0.99) 0%, rgba(255,234,201,0.96) 100%)",
+    border: "rgba(229,174,101,0.58)",
+    activeBorder: "rgba(205,134,44,0.84)",
+    ring: "rgba(214,147,61,0.24)",
+    panel: "rgba(255,255,255,0.54)",
+    control: "rgba(255,243,218,0.9)",
+    icon: "rgba(133,85,28,0.82)"
+  },
+  {
+    background: "linear-gradient(180deg, rgba(234,250,242,0.97) 0%, rgba(207,242,224,0.92) 100%)",
+    activeBackground: "linear-gradient(180deg, rgba(239,252,245,0.99) 0%, rgba(214,246,229,0.96) 100%)",
+    border: "rgba(107,185,146,0.56)",
+    activeBorder: "rgba(64,146,106,0.82)",
+    ring: "rgba(88,168,127,0.22)",
+    panel: "rgba(255,255,255,0.52)",
+    control: "rgba(228,247,237,0.9)",
+    icon: "rgba(45,109,79,0.82)"
+  },
+  {
+    background: "linear-gradient(180deg, rgba(236,246,255,0.97) 0%, rgba(209,232,250,0.92) 100%)",
+    activeBackground: "linear-gradient(180deg, rgba(241,249,255,0.99) 0%, rgba(216,236,252,0.96) 100%)",
+    border: "rgba(108,161,214,0.58)",
+    activeBorder: "rgba(61,124,188,0.84)",
+    ring: "rgba(74,138,201,0.22)",
+    panel: "rgba(255,255,255,0.54)",
+    control: "rgba(228,240,250,0.9)",
+    icon: "rgba(45,89,137,0.84)"
+  },
+  {
+    background: "linear-gradient(180deg, rgba(255,239,235,0.97) 0%, rgba(250,217,208,0.92) 100%)",
+    activeBackground: "linear-gradient(180deg, rgba(255,243,240,0.99) 0%, rgba(252,224,216,0.96) 100%)",
+    border: "rgba(214,129,112,0.58)",
+    activeBorder: "rgba(186,92,73,0.84)",
+    ring: "rgba(203,112,94,0.22)",
+    panel: "rgba(255,255,255,0.54)",
+    control: "rgba(251,235,230,0.9)",
+    icon: "rgba(141,67,52,0.84)"
+  },
+  {
+    background: "linear-gradient(180deg, rgba(252,249,228,0.97) 0%, rgba(244,236,186,0.92) 100%)",
+    activeBackground: "linear-gradient(180deg, rgba(253,250,235,0.99) 0%, rgba(247,239,198,0.96) 100%)",
+    border: "rgba(197,178,80,0.58)",
+    activeBorder: "rgba(168,147,34,0.84)",
+    ring: "rgba(184,164,58,0.22)",
+    panel: "rgba(255,255,255,0.54)",
+    control: "rgba(248,244,218,0.9)",
+    icon: "rgba(122,108,28,0.82)"
+  },
+  {
+    background: "linear-gradient(180deg, rgba(249,238,232,0.97) 0%, rgba(236,214,206,0.92) 100%)",
+    activeBackground: "linear-gradient(180deg, rgba(251,242,237,0.99) 0%, rgba(241,221,213,0.96) 100%)",
+    border: "rgba(179,131,107,0.58)",
+    activeBorder: "rgba(150,95,67,0.84)",
+    ring: "rgba(165,112,84,0.22)",
+    panel: "rgba(255,255,255,0.54)",
+    control: "rgba(245,232,226,0.9)",
+    icon: "rgba(117,74,52,0.84)"
+  },
+  {
+    background: "linear-gradient(180deg, rgba(241,248,232,0.97) 0%, rgba(223,237,205,0.92) 100%)",
+    activeBackground: "linear-gradient(180deg, rgba(245,250,237,0.99) 0%, rgba(228,241,212,0.96) 100%)",
+    border: "rgba(139,173,104,0.56)",
+    activeBorder: "rgba(104,141,67,0.82)",
+    ring: "rgba(121,156,84,0.22)",
+    panel: "rgba(255,255,255,0.54)",
+    control: "rgba(236,244,227,0.9)",
+    icon: "rgba(80,108,49,0.82)"
+  },
+  {
+    background: "linear-gradient(180deg, rgba(236,243,248,0.97) 0%, rgba(211,224,234,0.92) 100%)",
+    activeBackground: "linear-gradient(180deg, rgba(241,247,251,0.99) 0%, rgba(217,229,239,0.96) 100%)",
+    border: "rgba(115,144,170,0.58)",
+    activeBorder: "rgba(73,107,137,0.84)",
+    ring: "rgba(93,124,152,0.22)",
+    panel: "rgba(255,255,255,0.54)",
+    control: "rgba(231,239,245,0.9)",
+    icon: "rgba(56,83,107,0.84)"
+  }
+] as const;
+
+function getBubbleTheme(bubbleId: string) {
+  let hash = 0;
+
+  for (let index = 0; index < bubbleId.length; index += 1) {
+    hash = (hash * 31 + bubbleId.charCodeAt(index)) >>> 0;
+  }
+
+  return BUBBLE_THEMES[hash % BUBBLE_THEMES.length];
+}
 
 function BubbleCardComponent({
   bubble,
   active,
   canEdit,
   zoom,
-  presence,
   onSelect,
   onMovePreview,
   onMoveCommit,
@@ -24,7 +116,6 @@ function BubbleCardComponent({
   active: boolean;
   canEdit: boolean;
   zoom: number;
-  presence?: BubblePresence;
   onSelect: (bubbleId: string) => void;
   onMovePreview: (bubbleId: string, patch: Partial<DraftPatch>) => void;
   onMoveCommit: (bubbleId: string, patch: Partial<DraftPatch>) => void;
@@ -47,6 +138,7 @@ function BubbleCardComponent({
   } | null>(null);
 
   const fontScale = useMemo(() => cn(zoom < 0.6 ? "opacity-80" : "opacity-100"), [zoom]);
+  const theme = useMemo(() => getBubbleTheme(bubble.id), [bubble.id]);
 
   const handleDragStart = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!canEdit) {
@@ -136,6 +228,14 @@ function BubbleCardComponent({
     window.addEventListener("pointerup", handleUp);
   };
 
+  const cardStyle = {
+    background: active ? theme.activeBackground : theme.background,
+    borderColor: active ? theme.activeBorder : theme.border,
+    boxShadow: active
+      ? `0 0 0 2px ${theme.ring}, 0 24px 48px rgba(90, 70, 40, 0.18)`
+      : undefined
+  };
+
   return (
     <article
       className={cn(
@@ -152,11 +252,10 @@ function BubbleCardComponent({
       <div
         className={cn(
           "relative flex h-full w-full flex-col overflow-hidden rounded-[2rem] border px-4 pb-4 pt-3 text-left shadow-bubble transition duration-200",
-          active
-            ? "border-primary/50 bg-white ring-2 ring-primary/30"
-            : "border-white/75 bg-white/88 hover:border-primary/40 hover:bg-white",
+          active ? "" : "hover:-translate-y-0.5",
           fontScale
         )}
+        style={cardStyle}
         role="button"
         tabIndex={0}
         onClick={() => onSelect(bubble.id)}
@@ -167,21 +266,29 @@ function BubbleCardComponent({
           }
         }}
       >
-        <div className="absolute -bottom-2 left-6 size-5 rotate-45 rounded-sm border border-white/80 bg-white/88" />
+        <div
+          className="absolute -bottom-2 left-6 size-5 rotate-45 rounded-sm border"
+          style={{
+            background: active ? theme.activeBackground : theme.background,
+            borderColor: active ? theme.activeBorder : theme.border
+          }}
+        />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold tracking-tight text-foreground">{bubble.title}</p>
-            <div className="mt-1 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Users2 className="size-3.5" />
-                {presence?.onlineCount ?? 0} live
-              </span>
-              <span>{bubble.participant_count} voices</span>
-            </div>
+            <p
+              className="truncate text-sm font-semibold tracking-tight"
+              style={{ color: theme.icon }}
+            >
+              {bubble.owner_name ?? "Explorer"}
+            </p>
           </div>
           {canEdit ? (
             <button
-              className="rounded-full bg-muted/80 p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              className="rounded-full p-2 transition"
+              style={{
+                backgroundColor: theme.control,
+                color: theme.icon
+              }}
               onPointerDown={handleDragStart}
               aria-label={`Move ${bubble.title}`}
             >
@@ -189,20 +296,24 @@ function BubbleCardComponent({
             </button>
           ) : null}
         </div>
-        <div className="mt-4 flex-1">
-          <div className="rounded-[1.5rem] bg-muted/70 p-3 text-sm leading-6 text-muted-foreground">
-            <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80">
-              <MessageCircleMore className="size-3.5" />
-              Recent
-            </div>
-            {bubble.recent_message_preview ? truncate(bubble.recent_message_preview, 110) : "Start the vibe in this pocket of the map."}
-          </div>
+        <div
+          className="mt-4 flex-1 rounded-[1.5rem] px-4 py-3"
+          style={{ backgroundColor: theme.panel }}
+        >
+          <p className="text-sm leading-6 text-foreground [display:-webkit-box] overflow-hidden [-webkit-box-orient:vertical] [-webkit-line-clamp:6]">
+            {bubble.recent_message_preview ?? "Drop the first message in this bubble."}
+          </p>
         </div>
       </div>
 
       {canEdit ? (
         <button
-          className="absolute bottom-2 right-2 rounded-full border border-white/70 bg-white/80 p-2 text-muted-foreground shadow-sm transition hover:text-foreground"
+          className="absolute bottom-2 right-2 rounded-full border p-2 shadow-sm transition"
+          style={{
+            backgroundColor: theme.control,
+            borderColor: active ? theme.activeBorder : theme.border,
+            color: theme.icon
+          }}
           onPointerDown={handleResizeStart}
           aria-label={`Resize ${bubble.title}`}
         >
